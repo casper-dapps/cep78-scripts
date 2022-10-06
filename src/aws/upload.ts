@@ -11,6 +11,7 @@ import {
 import { config } from 'dotenv';
 import path from 'path';
 import fs from 'fs';
+import mime from 'mime';
 
 config();
 
@@ -40,7 +41,6 @@ const uploadDir = function (s3Path: string, bucketName: string) {
       Bucket: bucketName,
       Key: bucketPath.replace('\\', '/'),
       ACL: 'public-read',
-      ContentType: 'image',
     };
 
     try {
@@ -52,14 +52,21 @@ const uploadDir = function (s3Path: string, bucketName: string) {
         return;
       }
       params.Body = fs.readFileSync(filePath);
+      params.ContentType = mime.getType(filePath)
+        ? mime.getType(filePath)!
+        : undefined;
 
       // console.log('Uploading object: ' + params.Key);
 
-      await s3Client.send(new PutObjectCommand(params));
+      try {
+        await s3Client.send(new PutObjectCommand(params));
 
-      console.log(
-        'Successfully uploaded object: ' + params.Bucket + '/' + params.Key,
-      );
+        console.log(
+          'Successfully uploaded object: ' + params.Bucket + '/' + params.Key,
+        );
+      } catch (error: any) {
+        console.error(`Failed to upload ${params.Key}`);
+      }
     }
   });
 };
