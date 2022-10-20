@@ -12,6 +12,7 @@ import { config } from 'dotenv';
 import path from 'path';
 import fs from 'fs';
 import mime from 'mime';
+import { walkSync } from '../utils';
 
 config();
 
@@ -22,24 +23,11 @@ const s3Client = new S3Client({
 export const bucketParams: ListObjectsCommandInput = { Bucket: 'kunft-assets' };
 
 const uploadDir = function (s3Path: string, bucketName: string) {
-  async function walkSync(currentDirPath: string, callback: any) {
-    const promises = fs.readdirSync(currentDirPath).map(async function (name) {
-      var filePath = path.join(currentDirPath, name);
-      var stat = fs.statSync(filePath);
-      if (stat.isFile()) {
-        await callback(filePath, stat);
-      } else if (stat.isDirectory()) {
-        await walkSync(filePath, callback);
-      }
-    });
-    await Promise.all(promises);
-  }
-
   walkSync(s3Path, async function (filePath: string, stat: any) {
     const bucketPath = filePath.substring(s3Path.length + 1);
     const params: PutObjectCommandInput = {
       Bucket: bucketName,
-      Key: bucketPath.replace('\\', '/'),
+      Key: bucketPath.replaceAll('\\', '/'),
       ACL: 'public-read',
     };
 
