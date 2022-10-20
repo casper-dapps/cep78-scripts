@@ -7,7 +7,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "aws:list-files": "ts-node ./src/aws/upload.ts",
     "metadata:update": "ts-node ./src/metadata.ts",
-    "contract:install": "ts-node ./src/install-contract.ts"
+    "contract:install": "ts-node ./src/install-contract.ts",
+    "contract:mint": "ts-node ./src/mint.ts"
   },
   "repository": {
     "type": "git",
