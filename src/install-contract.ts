@@ -1,33 +1,20 @@
-import {
-  CasperClient,
-  Contracts,
-  CLPublicKey,
-  CLKey,
-  CLAccountHash,
-  CLByteArray,
-  CLValueBuilder,
-  RuntimeArgs,
-  Keys,
-  decodeBase64,
-} from 'casper-js-sdk';
 import { config } from 'dotenv';
 import path from 'path';
 
 import {
   CEP78Client,
-  NFTOwnershipMode,
+  MetadataMutability,
+  NFTIdentifierMode,
   NFTKind,
   NFTMetadataKind,
-  NFTIdentifierMode,
-  MetadataMutability,
+  NFTOwnershipMode,
 } from './cep78-client';
-
 import {
-  KEYS,
-  getBinary,
-  getDeploy,
   getAccountInfo,
   getAccountNamedKeyValue,
+  getBinary,
+  getDeploy,
+  KEYS,
 } from './common';
 
 config();
@@ -81,7 +68,10 @@ const install = async () => {
 
   console.log(`... Contract installed successfully.`);
 
-  let accountInfo = await getAccountInfo(process.env.NODE_URL!, KEYS.publicKey);
+  const accountInfo = await getAccountInfo(
+    process.env.NODE_URL!,
+    KEYS.publicKey,
+  );
 
   console.log(`... Account Info: `);
   console.log(JSON.stringify(accountInfo, null, 2));

@@ -1,47 +1,41 @@
 import {
-  CLValue,
-  CLPublicKey,
-  CLKey,
-  CLMap,
-  RuntimeArgs,
   CasperClient,
+  CLKeyParameters,
+  CLPublicKey,
+  CLU8,
+  CLValueBuilder,
   Contracts,
   Keys,
-  CLKeyParameters,
-  CLValueBuilder,
-  CLValueParsers,
-  CLTypeTag,
-  CLU8,
+  RuntimeArgs,
 } from 'casper-js-sdk';
-import { concat } from '@ethersproject/bytes';
 import { Some } from 'ts-results';
 
-const { Contract, toCLMap, fromCLMap } = Contracts;
+const { Contract } = Contracts;
 
 import {
-  CEP78InstallArgs,
   BurnMode,
+  CEP78InstallArgs,
+  MetadataMutability,
   NFTHolderMode,
   NFTIdentifierMode,
-  MetadataMutability,
-  NFTOwnershipMode,
-  NFTMetadataKind,
   NFTKind,
+  NFTMetadataKind,
+  NFTOwnershipMode,
 } from './types';
 
 export {
-  CEP78InstallArgs,
-  NFTOwnershipMode,
-  NFTKind,
-  NFTHolderMode,
-  NFTMetadataKind,
-  NFTIdentifierMode,
-  MetadataMutability,
-  MintingMode,
   BurnMode,
-  WhitelistMode,
+  CEP78InstallArgs,
   JSONSchemaEntry,
   JSONSchemaObject,
+  MetadataMutability,
+  MintingMode,
+  NFTHolderMode,
+  NFTIdentifierMode,
+  NFTKind,
+  NFTMetadataKind,
+  NFTOwnershipMode,
+  WhitelistMode,
 } from './types';
 
 export class CEP78Client {
@@ -243,6 +237,7 @@ export class CEP78Client {
       );
     } else {
       const contractHashBytes = CLValueBuilder.byteArray(
+        // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
         Buffer.from(this.contractClient?.contractHash?.slice(5)!, 'hex'),
       );
       runtimeArgs.insert(
@@ -260,26 +255,5 @@ export class CEP78Client {
     }
 
     return preparedDeploy;
-  }
-
-  public async burn(
-    tokenId: string,
-    paymentAmount: string,
-    deploySender: CLPublicKey,
-    keys?: Keys.AsymmetricKey[],
-    wasm?: Uint8Array,
-  ) {
-    const runtimeArgs = RuntimeArgs.fromMap({
-      token_id: CLValueBuilder.u64(tokenId),
-    });
-
-    return this.contractClient.callEntrypoint(
-      'burn',
-      runtimeArgs,
-      deploySender,
-      this.networkName,
-      paymentAmount,
-      keys,
-    );
   }
 }

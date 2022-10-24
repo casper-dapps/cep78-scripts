@@ -1,17 +1,15 @@
 import {
-  S3Client,
-  ListObjectsCommand,
-  ListObjectsCommandInput,
-  CreateMultipartUploadCommand,
-  GetObjectCommandInput,
   GetObjectCommand,
-  PutObjectCommandInput,
+  ListObjectsCommandInput,
   PutObjectCommand,
+  PutObjectCommandInput,
+  S3Client,
 } from '@aws-sdk/client-s3';
 import { config } from 'dotenv';
-import path from 'path';
 import fs from 'fs';
 import mime from 'mime';
+import path from 'path';
+
 import { walkSync } from '../utils';
 
 config();
@@ -23,7 +21,7 @@ const s3Client = new S3Client({
 export const bucketParams: ListObjectsCommandInput = { Bucket: 'kunft-assets' };
 
 const uploadDir = function (s3Path: string, bucketName: string) {
-  walkSync(s3Path, async function (filePath: string, stat: any) {
+  walkSync(s3Path, async function (filePath: string) {
     const bucketPath = filePath.substring(s3Path.length + 1);
     const params: PutObjectCommandInput = {
       Bucket: bucketName,

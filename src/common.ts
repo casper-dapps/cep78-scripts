@@ -1,12 +1,10 @@
-import { config } from 'dotenv';
 import {
-  Keys,
-  CLPublicKey,
-  decodeBase64,
   CasperClient,
   CasperServiceByJsonRPC,
+  CLPublicKey,
+  Keys,
 } from 'casper-js-sdk';
-
+import { config } from 'dotenv';
 import * as fs from 'fs';
 
 config();

@@ -1,29 +1,18 @@
+import { CEP78Client } from './cep78-client';
 import {
-  CEP78Client,
-  NFTOwnershipMode,
-  NFTKind,
-  NFTMetadataKind,
-  NFTIdentifierMode,
-  MetadataMutability,
-} from './cep78-client';
-
-import {
-  KEYS,
-  getBinary,
-  getDeploy,
   getAccountInfo,
   getAccountNamedKeyValue,
+  getDeploy,
+  KEYS,
   printHeader,
 } from './common';
 
-import { DeployUtil } from 'casper-js-sdk';
-
-const { NODE_URL, NETWORK_NAME, CONTRACT_NAME } = process.env;
+const { NODE_URL } = process.env;
 
 const run = async () => {
   const cc = new CEP78Client(process.env.NODE_URL!, process.env.NETWORK_NAME!);
 
-  let accountInfo = await getAccountInfo(NODE_URL!, KEYS.publicKey);
+  const accountInfo = await getAccountInfo(NODE_URL!, KEYS.publicKey);
 
   console.log(`\n=====================================\n`);
 
@@ -58,8 +47,6 @@ const run = async () => {
 
   const identifierModeSetting = await cc.getIdentifierModeConfig();
   console.log(identifierModeSetting);
-
-  const JSONSetting = await cc.getJSONSchemaConfig();
 
   /* Mint */
   printHeader('Mint');
