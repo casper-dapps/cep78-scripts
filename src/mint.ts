@@ -1,91 +1,123 @@
-import { CEP78Client } from './cep78-client';
-import {
-  getAccountInfo,
-  getAccountNamedKeyValue,
-  getDeploy,
-  KEYS,
-  printHeader,
-} from './common';
+import { CLPublicKey, CLValueBuilder } from 'casper-js-sdk';
+
+import { CEP78Client, MintingHelperClient, MintMultipleArgs } from './clients';
+import { getDeploy, KEYS, printHeader } from './common';
 
 const { NODE_URL } = process.env;
 
-const run = async () => {
+const mint = async () => {
   const cc = new CEP78Client(process.env.NODE_URL!, process.env.NETWORK_NAME!);
 
-  const accountInfo = await getAccountInfo(NODE_URL!, KEYS.publicKey);
-
-  console.log(`\n=====================================\n`);
-
-  console.log(`... Account Info: `);
-  console.log(JSON.stringify(accountInfo, null, 2));
-
-  const contractHash = await getAccountNamedKeyValue(
-    accountInfo,
-    `nft_contract`,
-  );
-
-  const contractPackageHash = await getAccountNamedKeyValue(
-    accountInfo,
-    `nft_contract_package`,
-  );
-
+  const contractHash = `hash-fcb8a65ef6aff5be0878161f8d58b852f9b874bb1b25bdd7ed19f5e918554f35`;
   console.log(`... Contract Hash: ${contractHash}`);
-  console.log(`... Contract Package Hash: ${contractPackageHash}`);
 
   cc.setContractHash(contractHash, undefined, true);
 
-  console.log(`\n=====================================\n`);
-
-  const allowMintingSetting = await cc.getAllowMintingConfig();
-  console.log(allowMintingSetting);
-
-  const burnModeSetting = await cc.getBurnModeConfig();
-  console.log(burnModeSetting);
-
-  const holderModeSetting = await cc.getHolderModeConfig();
-  console.log(holderModeSetting);
-
-  const identifierModeSetting = await cc.getIdentifierModeConfig();
-  console.log(identifierModeSetting);
-
-  /* Mint */
   printHeader('Mint');
+  let i = 0;
+  const owner = CLPublicKey.fromHex(
+    '0183aaf23c198c7209d37b29170055c4fb8a2b4b4f20a71d91b85453f4017d65ee',
+  );
+  for (i = 28; i < 3000; i++) {
+    try {
+      console.log(`----Minting ${i} -----`);
+      const tokenUri = `https://kunft-assets.s3.amazonaws.com/1.Human+Male/metadata/${i}.json`;
+      const fetchedMetadata = await (await fetch(tokenUri)).json();
 
-  const tokenUri =
-    'https://kunft-assets.s3.amazonaws.com/1.Human+Male/metadata/0.json';
+      const { createHash } = await import('node:crypto');
+      const hash = createHash('sha256');
 
-  const fetchedMetadata = await (await fetch(tokenUri)).json();
+      const checksum = hash
+        .update(JSON.stringify(fetchedMetadata, null, 2))
+        .digest('hex');
 
-  console.log(fetchedMetadata);
+      const mintDeploy = await cc.mint(
+        owner,
+        {
+          name: fetchedMetadata.name,
+          token_uri: tokenUri,
+          checksum,
+        },
+        '900000000',
+        KEYS.publicKey,
+        [KEYS],
+      );
 
-  const { createHash } = await import('node:crypto');
+      const mintDeployHash = await mintDeploy.send(NODE_URL!);
 
-  const hash = createHash('sha256');
+      console.log('...... Deploy hash: ', mintDeployHash);
 
-  const checksum = hash
-    .update(JSON.stringify(fetchedMetadata, null, 2))
-    .digest('hex');
+      await getDeploy(NODE_URL!, mintDeployHash);
 
-  const mintDeploy = await cc.mint(
-    KEYS.publicKey,
+      console.log(`----${i} token Minted Successfully-----`);
+    } catch (error: any) {
+      console.log(`----Error----- tokenId:${i}`);
+      console.error(error);
+      console.log(`-------`);
+    }
+  }
+};
+
+const mintByHelper = async () => {
+  const client = new MintingHelperClient(
+    process.env.NODE_URL!,
+    process.env.NETWORK_NAME!,
+  );
+  client.setContractHash(
+    `hash-0aabdc3f37bdc9521602dd5927bda80b568c695f6422866727c840d682799e4a`,
+  );
+
+  const tokenOwner = CLPublicKey.fromHex(
+    '0183aaf23c198c7209d37b29170055c4fb8a2b4b4f20a71d91b85453f4017d65ee',
+  );
+  const tokensToMint: MintMultipleArgs['tokens'] = [];
+  for (let i = 0; i < 3; i++) {
+    const tokenUri = `https://kunft-assets.s3.amazonaws.com/1.Human+Male/metadata/${i}.json`;
+    const fetchedMetadata = await (await fetch(tokenUri)).json();
+
+    const { createHash } = await import('node:crypto');
+    const hash = createHash('sha256');
+
+    const checksum = hash
+      .update(JSON.stringify(fetchedMetadata, null, 2))
+      .digest('hex');
+    tokensToMint.push({
+      tokenOwner,
+      tokenMeta: {
+        name: fetchedMetadata.name,
+        token_uri: tokenUri,
+        checksum,
+      },
+    });
+  }
+
+  const tokens = CLValueBuilder.list(
+    tokensToMint.map((token) =>
+      CLValueBuilder.tuple2([
+        CLValueBuilder.key(token.tokenOwner),
+        CLValueBuilder.string(JSON.stringify(token.tokenMeta)),
+      ]),
+    ),
+  );
+
+  const deploy = client.mintMultiple(
     {
-      name: fetchedMetadata.name,
-      token_uri: tokenUri,
-      checksum,
+      contractHash:
+        'contract-75c0f650870b733ef498378b72d4fb6dc6b634f7a91aa6cdaf59e4352ef309ea',
+      tokens: tokensToMint,
     },
-    '700000000',
+    '20000000000',
     KEYS.publicKey,
     [KEYS],
   );
 
-  const mintDeployHash = await mintDeploy.send(NODE_URL!);
+  const deployHash = await deploy.send(process.env.NODE_URL!);
+  console.log('...... Deploy hash: ', deployHash);
 
-  console.log('...... Deploy hash: ', mintDeployHash);
-  console.log('...... Waiting for the deploy...');
+  await getDeploy(NODE_URL!, deployHash);
 
-  await getDeploy(NODE_URL!, mintDeployHash);
-
-  console.log('Deploy Succedeed');
+  console.log(`----Token Minted Successfully-----`);
 };
 
-run();
+// mint();
+mintByHelper();

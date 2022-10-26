@@ -10,7 +10,7 @@ import fs from 'fs';
 import mime from 'mime';
 import path from 'path';
 
-import { walkSync } from '../utils';
+import { walkSync } from '../clients/cep78/utils';
 
 config();
 

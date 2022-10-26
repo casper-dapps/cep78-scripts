@@ -8,6 +8,7 @@ import { config } from 'dotenv';
 import * as fs from 'fs';
 
 config();
+// config({ path: '.env.production.local' });
 
 const { MASTER_KEY_PAIR_PATH } = process.env;
 

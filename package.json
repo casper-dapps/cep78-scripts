@@ -8,7 +8,8 @@
     "aws:list-files": "ts-node ./src/aws/upload.ts",
     "metadata:update": "ts-node ./src/metadata.ts",
     "contract:install": "ts-node ./src/install-contract.ts",
-    "contract:mint": "ts-node ./src/mint.ts"
+    "contract:mint": "ts-node ./src/mint.ts",
+    "lint": "eslint \"./src\""
   },
   "repository": {
     "type": "git",

@@ -1,3 +1,5 @@
+import { CLKeyParameters } from 'casper-js-sdk';
+
 export enum NFTOwnershipMode {
   Minter,
   Assigned,
@@ -58,21 +60,40 @@ export interface JSONSchemaObject {
   properties: Record<string, JSONSchemaEntry>;
 }
 
-export interface CEP78InstallArgs {
+export type ConfigurableVariables = {
+  allowMinting?: boolean;
+  contractWhitelist?: string[];
+};
+
+export type InstallArgs = {
   collectionName: string;
   collectionSymbol: string;
   totalTokenSupply: string;
   ownershipMode: NFTOwnershipMode;
   nftKind: NFTKind;
-  jsonSchema?: JSONSchemaObject;
+  jsonSchema: JSONSchemaObject;
   nftMetadataKind: NFTMetadataKind;
   identifierMode: NFTIdentifierMode;
   metadataMutability: MetadataMutability;
-
   mintingMode?: MintingMode;
-  allowMinting?: boolean;
   whitelistMode?: WhitelistMode;
   holderMode?: NFTHolderMode;
-  contractWhitelist?: string[];
   burnMode?: BurnMode;
+} & ConfigurableVariables;
+
+export interface MintArgs {
+  owner: CLKeyParameters;
+  meta: Record<string, string>;
 }
+
+export interface TokenArgs {
+  tokenId?: string;
+  tokenHash?: string;
+}
+
+export type BurnArgs = TokenArgs;
+
+export type TransferArgs = {
+  target: CLKeyParameters;
+  source: CLKeyParameters;
+} & TokenArgs;

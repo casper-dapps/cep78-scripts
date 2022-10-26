@@ -14,7 +14,8 @@ const { Contract } = Contracts;
 
 import {
   BurnMode,
-  CEP78InstallArgs,
+  ConfigurableVariables,
+  InstallArgs,
   MetadataMutability,
   NFTHolderMode,
   NFTIdentifierMode,
@@ -25,7 +26,7 @@ import {
 
 export {
   BurnMode,
-  CEP78InstallArgs,
+  InstallArgs,
   JSONSchemaEntry,
   JSONSchemaObject,
   MetadataMutability,
@@ -38,6 +39,21 @@ export {
   WhitelistMode,
 } from './types';
 
+const convertHashStrToHashBuff = (hashStr: string) => {
+  let hashHex = hashStr;
+  if (hashStr.startsWith('hash-')) {
+    hashHex = hashStr.slice(5);
+  }
+  return Buffer.from(hashHex, 'hex');
+};
+
+const buildKeyHashList = (list: string[]) =>
+  list.map((hashStr) =>
+    CLValueBuilder.key(
+      CLValueBuilder.byteArray(convertHashStrToHashBuff(hashStr)),
+    ),
+  );
+
 export class CEP78Client {
   casperClient: CasperClient;
   contractClient: Contracts.Contract;
@@ -49,7 +65,7 @@ export class CEP78Client {
 
   public install(
     wasm: Uint8Array,
-    args: CEP78InstallArgs,
+    args: InstallArgs,
     paymentAmount: string,
     deploySender: CLPublicKey,
     keys?: Keys.AsymmetricKey[],
@@ -60,42 +76,40 @@ export class CEP78Client {
       total_token_supply: CLValueBuilder.u64(args.totalTokenSupply),
       ownership_mode: CLValueBuilder.u8(args.ownershipMode),
       nft_kind: CLValueBuilder.u8(args.nftKind),
-
+      json_schema: CLValueBuilder.string(JSON.stringify(args.jsonSchema)),
       nft_metadata_kind: CLValueBuilder.u8(args.nftMetadataKind),
       identifier_mode: CLValueBuilder.u8(args.identifierMode),
       metadata_mutability: CLValueBuilder.u8(args.metadataMutability),
     });
 
-    if (args.jsonSchema) {
+    if (args.mintingMode !== undefined) {
+      runtimeArgs.insert('minting_mode', CLValueBuilder.u8(args.mintingMode));
+    }
+
+    if (args.allowMinting !== undefined) {
       runtimeArgs.insert(
-        'json_schema',
-        CLValueBuilder.string(JSON.stringify(args.jsonSchema)),
+        'allow_minting',
+        CLValueBuilder.bool(args.allowMinting),
       );
     }
 
-    if (args.mintingMode) {
-      const value = CLValueBuilder.u8(args.mintingMode);
-      runtimeArgs.insert('minting_mode', CLValueBuilder.option(Some(value)));
+    if (args.whitelistMode !== undefined) {
+      runtimeArgs.insert(
+        'whitelist_mode',
+        CLValueBuilder.u8(args.whitelistMode),
+      );
     }
 
-    if (args.allowMinting) {
-      const value = CLValueBuilder.bool(args.allowMinting);
-      runtimeArgs.insert('allow_minting', CLValueBuilder.option(Some(value)));
+    if (args.holderMode !== undefined) {
+      runtimeArgs.insert('holder_mode', CLValueBuilder.u8(args.holderMode));
     }
 
-    if (args.whitelistMode) {
-      const value = CLValueBuilder.u8(args.whitelistMode);
-      runtimeArgs.insert('whitelist_mode', CLValueBuilder.option(Some(value)));
+    if (args.contractWhitelist !== undefined) {
+      const list = buildKeyHashList(args.contractWhitelist);
+      runtimeArgs.insert('contract_whitelist', CLValueBuilder.list(list));
     }
 
-    if (args.holderMode) {
-      const value = CLValueBuilder.u8(args.holderMode);
-      runtimeArgs.insert('holder_mode', CLValueBuilder.option(Some(value)));
-    }
-
-    // TODO: Implement contractWhitelist support.
-
-    if (args.burnMode) {
+    if (args.burnMode !== undefined) {
       const value = CLValueBuilder.u8(args.burnMode);
       runtimeArgs.insert('burn_mode', CLValueBuilder.option(Some(value)));
     }
@@ -209,6 +223,13 @@ export class CEP78Client {
     return internalValue.toString();
   }
 
+  public async getMetadataCEP78(id: string) {
+    return await this.contractClient.queryContractDictionary(
+      'metadata_cep78',
+      id,
+    );
+  }
+
   public async mint(
     owner: CLKeyParameters,
     meta: Record<string, string>,
@@ -254,6 +275,37 @@ export class CEP78Client {
       );
     }
 
+    return preparedDeploy;
+  }
+
+  public setVariables(
+    args: ConfigurableVariables,
+    paymentAmount: string,
+    deploySender: CLPublicKey,
+    keys?: Keys.AsymmetricKey[],
+  ) {
+    const runtimeArgs = RuntimeArgs.fromMap({});
+
+    if (args.allowMinting !== undefined) {
+      runtimeArgs.insert(
+        'allow_minting',
+        CLValueBuilder.bool(args.allowMinting),
+      );
+    }
+
+    if (args.contractWhitelist !== undefined) {
+      const list = buildKeyHashList(args.contractWhitelist);
+      runtimeArgs.insert('contract_whitelist', CLValueBuilder.list(list));
+    }
+
+    const preparedDeploy = this.contractClient.callEntrypoint(
+      'set_variables',
+      runtimeArgs,
+      deploySender,
+      this.networkName,
+      paymentAmount,
+      keys,
+    );
     return preparedDeploy;
   }
 }

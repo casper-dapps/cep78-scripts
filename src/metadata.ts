@@ -2,7 +2,7 @@ import { config } from 'dotenv';
 import fs from 'fs';
 import path from 'path';
 
-import { walkSync } from './utils';
+import { walkSync } from './clients/cep78/utils';
 config();
 
 const AWS_BUCKET = process.env.AWS_BUCKET;
